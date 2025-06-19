@@ -44,28 +44,30 @@ function insertFlag(flag, table, flagData) {
     flagDesc.innerHTML = flagData.description;
 }
 
+// Fetch flags
+const userFlags = DiscordFlags.getFlagDetails('user');
+const appFlags = DiscordFlags.getFlagDetails('application');
+
 // Display user flags
-for (const flag of Object.keys(DiscordFlags.flags.userFlags)) {
-    const shift = DiscordFlags.flags.userFlags[flag].shift;
+for (const [flag, data] of Object.entries(userFlags)) {
     insertFlag(flag, userTable, {
-        description: DiscordFlags.flags.userFlags[flag].description,
-        bitshift: shift,
-        value: 1n << BigInt(shift),
-        undocumented: DiscordFlags.flags.userFlags[flag].undocumented,
-        deprecated: DiscordFlags.flags.userFlags[flag]?.deprecated ?? false
+        description: data.description,
+        bitshift: data.bitshift,
+        value: data.value,
+        undocumented: data.undocumented,
+        deprecated: data.deprecated ?? false
     });
 }
 document.getElementById("userLoading").style.display = "none";
 
 // Display application flags
-for (const flag of Object.keys(DiscordFlags.flags.applicationFlags)) {
-    const shift = DiscordFlags.flags.applicationFlags[flag].shift;
+for (const [flag, data] of Object.entries(appFlags)) {
     insertFlag(flag, applicationTable, {
-        description: DiscordFlags.flags.applicationFlags[flag].description,
-        bitshift: shift,
-        value: 1n << BigInt(shift),
-        undocumented: DiscordFlags.flags.applicationFlags[flag].undocumented,
-        deprecated: DiscordFlags.flags.applicationFlags[flag]?.deprecated ?? false
+        description: data.description,
+        bitshift: data.bitshift,
+        value: data.value,
+        undocumented: data.undocumented,
+        deprecated: data.deprecated ?? false
     });
 }
 document.getElementById("applicationLoading").style.display = "none";
