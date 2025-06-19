@@ -1,16 +1,19 @@
-function calculateFlags(e) {
+// Create new instance of DiscordFlags
+const flags = new DiscordFlags();
+
+async function calculateFlags(e) {
     e.preventDefault();
     const result = document.getElementById("result");
     result.innerHTML = "N/A";
-    let flagNum;
     try {
-        flagNum = BigInt(document.getElementById("flags").value);
+        const flagNum = BigInt(document.getElementById("flags").value);
+        const userResult = await flags.getFlags(flagNum, 'user');
+        const appResult = await flags.getFlags(flagNum, 'application');
+        result.innerHTML = `<b>User:</b> ${userResult}<br><b>Application:</b> ${appResult}`;
     } catch (e) {
         result.innerHTML = "Bad flag number";
         console.warn(e);
-        return;
     }
-    result.innerHTML = `<b>User:</b> ${DiscordFlags.getFlags(flagNum, 'user')}<br><b>Application:</b> ${DiscordFlags.getFlags(flagNum, 'application')}`;
 }
 
 const undocumented = `<span class="icon">
@@ -44,34 +47,38 @@ function insertFlag(flag, table, flagData) {
     flagDesc.innerHTML = flagData.description;
 }
 
-// Fetch flags
-const userFlags = DiscordFlags.getFlagDetails('user');
-const appFlags = DiscordFlags.getFlagDetails('application');
+async function initialize() {
+    // Changed to await flag details
+    const userFlags = await flags.getFlagDetails('user');
+    const appFlags = await flags.getFlagDetails('application');
 
-// Display user flags
-for (const [flag, data] of Object.entries(userFlags)) {
-    insertFlag(flag, userTable, {
-        description: data.description,
-        bitshift: data.bitshift,
-        value: data.value,
-        undocumented: data.undocumented,
-        deprecated: data.deprecated ?? false
-    });
+    // Populate tables
+    for (const [flag, data] of Object.entries(userFlags)) {
+        insertFlag(flag, userTable, {
+            description: data.description,
+            bitshift: data.bitshift,
+            value: data.value,
+            undocumented: data.undocumented,
+            deprecated: data.deprecated ?? false
+        });
+    }
+    for (const [flag, data] of Object.entries(appFlags)) {
+        insertFlag(flag, applicationTable, {
+            description: data.description,
+            bitshift: data.bitshift,
+            value: data.value,
+            undocumented: data.undocumented,
+            deprecated: data.deprecated ?? false
+        });
+    }
+    
+    document.getElementById("userLoading").style.display = "none";
+    document.getElementById("applicationLoading").style.display = "none";
 }
-document.getElementById("userLoading").style.display = "none";
 
-// Display application flags
-for (const [flag, data] of Object.entries(appFlags)) {
-    insertFlag(flag, applicationTable, {
-        description: data.description,
-        bitshift: data.bitshift,
-        value: data.value,
-        undocumented: data.undocumented,
-        deprecated: data.deprecated ?? false
-    });
-}
-document.getElementById("applicationLoading").style.display = "none";
-
-// Enable the form
-document.getElementById("flagForm").addEventListener("submit", calculateFlags);
-document.getElementById("flagFormSubmit").attributes.removeNamedItem("disabled");
+// Initialize and set up form
+initialize();
+document.getElementById("flagForm").addEventListener("submit", (e) => {
+    calculateFlags(e).catch(console.error);
+});
+document.getElementById("flagFormSubmit").removeAttribute("disabled");
