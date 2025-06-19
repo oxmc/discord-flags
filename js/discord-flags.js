@@ -8,85 +8,96 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-const userFlagsJson = fetch("https://raw.githubusercontent.com/lewisakura/discord-flags/master/flags/user.json").then(r => r.json());
-const applicationFlagsJson = fetch("https://raw.githubusercontent.com/lewisakura/discord-flags/master/flags/application.json").then(r => r.json());
+class DiscordFlags {
+    constructor() {
+        this.cache = {
+            user: null,
+            application: null
+        };
+    }
 
-window.DiscordFlags = {
-	flags: {
-		userFlags: userFlagsJson,
-		applicationFlags: applicationFlagsJson
-	},
+    async _fetchFlags(type) {
+        const url = `https://raw.githubusercontent.com/lewisakura/discord-flags/master/flags/${type}.json`;
+        const response = await fetch(url);
+        const data = await response.json();
+        this.cache[type] = data;
+        return data;
+    }
 
-	_checkFlags: function(flags, flagNumber) {
-		let results = [];
-		for (let i = 0; i <= 64; i++) {
-			const bitwise = 1n << BigInt(i);
-			if (flagNumber & bitwise) {
-				const flag = Object.entries(flags).find((f) => f[1].shift === i)?.[0] || `UNKNOWN_FLAG_${i}`;
-				results.push(flag);
-			}
-		}
-		return results.join(", ") || "NONE";
-	},
+    async getFlagsData(type = 'user') {
+        if (!this.cache[type]) {
+            await this._fetchFlags(type);
+        }
+        return this.cache[type];
+    }
 
-	getFlags: function(number, type = "both") {
-		let flagNum, resp = {};
-		try {
-			flagNum = BigInt(number);
-		} catch (e) {
-			console.warn(e);
-			return "Bad flag number";
-		}
-		resp.user = this._checkFlags(this.flags.userFlags, flagNum);
-		resp.application = this._checkFlags(this.flags.applicationFlags, flagNum);
-		switch (type) {
-			case "user":
-				return resp.user;
-			case "application":
-				return resp.application;
-			case "both":
-			default:
-				return resp;
-		}
-	},
+    _checkFlags(flags, flagNumber) {
+        let results = [];
+        for (let i = 0; i <= 64; i++) {
+            const bitwise = 1n << BigInt(i);
+            if (flagNumber & bitwise) {
+                const flag = Object.entries(flags).find((f) => f[1].shift === i)?.[0] || `UNKNOWN_FLAG_${i}`;
+                results.push(flag);
+            }
+        }
+        return results.join(", ") || "NONE";
+    }
 
-	getFlagDetails: function(type = "both") {
-		const result = {};
+    async getFlags(number, type = "both") {
+        let flagNum, resp = {};
+        try {
+            flagNum = BigInt(number);
+        } catch (e) {
+            console.warn(e);
+            return "Bad flag number";
+        }
 
-		if (type === "user" || type === "both") {
-			result.user = {};
-			for (const flag of Object.keys(this.flags.userFlags)) {
-				const shift = this.flags.userFlags[flag].shift;
-				result.user[flag] = {
-					description: this.flags.userFlags[flag].description,
-					bitshift: shift,
-					value: 1n << BigInt(shift),
-					undocumented: this.flags.userFlags[flag].undocumented,
-					deprecated: this.flags.userFlags[flag]?.deprecated ?? false
-				};
-			}
-		}
+        if (type === 'user' || type === 'both') {
+            const userFlags = await this.getFlagsData('user');
+            resp.user = this._checkFlags(userFlags, flagNum);
+        }
+        
+        if (type === 'application' || type === 'both') {
+            const appFlags = await this.getFlagsData('application');
+            resp.application = this._checkFlags(appFlags, flagNum);
+        }
 
-		if (type === "application" || type === "both") {
-			result.application = {};
-			for (const flag of Object.keys(this.flags.applicationFlags)) {
-				const shift = this.flags.applicationFlags[flag].shift;
-				result.application[flag] = {
-					description: this.flags.applicationFlags[flag].description,
-					bitshift: shift,
-					value: 1n << BigInt(shift),
-					undocumented: this.flags.applicationFlags[flag].undocumented,
-					deprecated: this.flags.applicationFlags[flag]?.deprecated ?? false
-				};
-			}
-		}
+        return type === "both" ? resp : resp[type];
+    }
 
-		return type === "both" ? result : result[type];
-	}
-};
+    async getFlagDetails(type = "both") {
+        const result = {};
 
-// Populate the flags when data arrives
-Promise.all([userFlagsJson, applicationFlagsJson]).then(([userFlags, appFlags]) => {
-	DiscordFlags.flags.userFlags = userFlags;
-	DiscordFlags.flags.applicationFlags = appFlags;
-});
+        if (type === "user" || type === "both") {
+            const userFlags = await this.getFlagsData('user');
+            result.user = {};
+            for (const flag of Object.keys(userFlags)) {
+                const shift = userFlags[flag].shift;
+                result.user[flag] = {
+                    description: userFlags[flag].description,
+                    bitshift: shift,
+                    value: 1n << BigInt(shift),
+                    undocumented: userFlags[flag].undocumented,
+                    deprecated: userFlags[flag]?.deprecated ?? false
+                };
+            }
+        }
+
+        if (type === "application" || type === "both") {
+            const appFlags = await this.getFlagsData('application');
+            result.application = {};
+            for (const flag of Object.keys(appFlags)) {
+                const shift = appFlags[flag].shift;
+                result.application[flag] = {
+                    description: appFlags[flag].description,
+                    bitshift: shift,
+                    value: 1n << BigInt(shift),
+                    undocumented: appFlags[flag].undocumented,
+                    deprecated: appFlags[flag]?.deprecated ?? false
+                };
+            }
+        }
+
+        return type === "both" ? result : result[type];
+    }
+}
