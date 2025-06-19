@@ -12,7 +12,7 @@
     const userFlagsJson = await fetch("https://raw.githubusercontent.com/lewisakura/discord-flags/master/flags/user.json").then(r => r.json());
     const applicationFlagsJson = await fetch("https://raw.githubusercontent.com/lewisakura/discord-flags/master/flags/application.json").then(r => r.json());
     
-    const DiscordFlags = {
+    window.DiscordFlags = {
         flags: { userFlags: userFlagsJson, applicationFlags: applicationFlagsJson },
         
         _checkFlags: function (flags, flagNumber) {
@@ -82,6 +82,4 @@
             return type === "both" ? result : result[type];
         }
     };
-    
-    window.DiscordFlags = DiscordFlags;
 })();
